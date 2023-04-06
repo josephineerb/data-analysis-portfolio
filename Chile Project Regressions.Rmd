@@ -1,0 +1,79 @@
+---
+title: "BD Ballica"
+author: "Josephine G Erb"
+date: '2022-06-14'
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+
+## PEARSON CORRELATION GRAPHICS
+
+# Pearson Correlation: 3 Replicates (Without Pore Water Extractions and AN2)
+library(Hmisc)
+library(corrplot)
+library(dplyr)
+library(reshape2)
+
+Three_Replicates_Fixed <- Three_Replicates %>% mutate_if(is.character, as.factor)
+Three_Replicates_Fixed2 <- Three_Replicates_Fixed %>% mutate_if(is.factor, as.numeric)
+
+Cor3R = cor(Three_Replicates_Fixed2, method = c ("pearson"))
+
+# Pearson P Values
+Cor3R.recorr = rcorr(as.matrix(Cor3R))
+Cor3R.recorr
+
+# Generate R and P Tables
+Cor3R.r=Cor3R.recorr$r
+Cor3R.p=Cor3R.recorr$P
+Cor3R.r
+Cor3R.p
+
+# Correlation Graphic Matrix
+ 
+corrplot(Cor3R, addn=T,
+         addgrid.col = "gray50", tl.cex=.3, assign.col="min2max",
+         tl.col = "black", cl.ratio=1, addcolor="no",
+         col = colorRampPalette(c("red","white","blue"))(100))
+```
+
+```{r setup, include=FALSE}
+
+library(Hmisc)
+library(corrplot)
+library(dplyr)
+library(reshape2)
+
+corr_simple_3R <- function(data=Three_Replicates,sig=0.5){
+  #convert data to numeric in order to run correlations
+  #convert to factor first to keep the integrity of the data - each value will become a number rather than turn into NA
+Three_Replicates_Fixed <- Three_Replicates %>% mutate_if(is.character, as.factor)
+Three_Replicates_Fixed2 <- Three_Replicates_Fixed %>% mutate_if(is.factor, as.numeric)
+
+#run a correlation and drop the insignificant ones
+  corr <- cor(Three_Replicates_Fixed2)
+  #prepare to drop duplicates and correlations of 1     
+  corr[lower.tri(corr,diag=TRUE)] <- NA 
+  #drop perfect correlations
+  corr[corr == 1] <- NA 
+  #turn into a 3-column table
+  corr <- as.data.frame(as.table(corr))
+  #remove the NA values from above 
+  corr <- na.omit(corr) 
+  #select significant values  
+  corr <- subset(corr, abs(Freq) > sig) 
+  #sort by highest correlation
+  corr <- corr[order(-abs(corr$Freq)),] 
+  #print table
+  print(corr)
+  #turn corr back into matrix in order to plot with corrplot
+  mtx_corr <- reshape2::acast(corr, Var1~Var2, value.var="Freq")
+  
+  #plot correlations visually
+   corrplot(mtx_corr, method = c ("pearson"), is.corr=FALSE, tl.col="black", na.label=" ",)
+}
+corr_simple_3R()
+```
